@@ -139,4 +139,125 @@ public class CourtTests
 
         Assert.Throws<ArgumentNullException>(() => court.Reserve(Guid.NewGuid(), null!, []));
     }
+        // ---------- Images ----------
+
+    private static Court CourtWithImages(int count)
+    {
+        var court = new Court("Cancha 1");
+        for (var i = 1; i <= count; i++)
+            court.AddCourtImage($"courts/test/{i}.jpg");
+        return court;
+    }
+
+    [Fact]
+    public void Constructor_StartsWithoutImages()
+    {
+        var court = new Court("Cancha 1");
+
+        Assert.Empty(court.Images);
+    }
+
+    [Fact]
+    public void AddCourtImage_WithValidKey_AddsAndReturnsTheImage()
+    {
+        var court = new Court("Cancha 1");
+
+        var image = court.AddCourtImage("courts/test/1.jpg");
+
+        Assert.NotEqual(Guid.Empty, image.Id);
+        Assert.Equal("courts/test/1.jpg", image.StorageKey);
+        Assert.Single(court.Images);
+        Assert.Contains(image, court.Images);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void AddCourtImage_WithInvalidKey_ThrowsAndAddsNothing(string? key)
+    {
+        var court = new Court("Cancha 1");
+
+        Assert.Throws<DomainException>(() => court.AddCourtImage(key!));
+        Assert.Empty(court.Images);
+    }
+
+    [Fact]
+    public void AddCourtImage_UpToTheMax_Succeeds()
+    {
+        var court = CourtWithImages(Court.MaxCourtImages);
+
+        Assert.Equal(Court.MaxCourtImages, court.Images.Count);
+    }
+
+    [Fact]
+    public void AddCourtImage_WhenAtTheMax_ThrowsAndKeepsTheMax()
+    {
+        var court = CourtWithImages(Court.MaxCourtImages);
+
+        Assert.Throws<DomainException>(() => court.AddCourtImage("courts/test/extra.jpg"));
+        Assert.Equal(Court.MaxCourtImages, court.Images.Count);
+    }
+
+    [Fact]
+    public void AddCourtImage_ToInactiveCourt_Succeeds()
+    {
+        var court = new Court("Cancha 1");
+        court.Deactivate();
+
+        court.AddCourtImage("courts/test/1.jpg");
+
+        Assert.Single(court.Images);
+    }
+
+    [Fact]
+    public void RemoveCourtImage_WhenExists_RemovesAndReturnsIt()
+    {
+        var court = new Court("Cancha 1");
+        var image = court.AddCourtImage("courts/test/1.jpg");
+        court.AddCourtImage("courts/test/2.jpg");
+
+        var removed = court.RemoveCourtImage(image.Id);
+
+        Assert.Same(image, removed);                 // Same = el mismo objeto, no solo "igual"
+        Assert.DoesNotContain(image, court.Images);
+        Assert.Single(court.Images);
+    }
+
+    [Fact]
+    public void RemoveCourtImage_WhenImageIsFromAnotherCourt_ThrowsAndRemovesNothing()
+    {
+        var court = CourtWithImages(2);
+        var otherImage = new Court("Cancha 2").AddCourtImage("courts/other/1.jpg");
+
+        Assert.Throws<DomainException>(() => court.RemoveCourtImage(otherImage.Id));
+        Assert.Equal(2, court.Images.Count);
+    }
+
+    [Fact]
+    public void RemoveCourtImage_WhenAtTheMax_AllowsAddingAnotherOne()
+    {
+        var court = new Court("Cancha 1");
+        var first = court.AddCourtImage("courts/test/first.jpg");
+        for (var i = 2; i <= Court.MaxCourtImages; i++)
+            court.AddCourtImage($"courts/test/{i}.jpg");
+
+        court.RemoveCourtImage(first.Id);
+        court.AddCourtImage("courts/test/new.jpg");
+
+        Assert.Equal(Court.MaxCourtImages, court.Images.Count);
+    }
+
+    [Fact]
+    public void Images_CannotBeModifiedFromOutside()
+    {
+        var court = new Court("Cancha 1");
+        var foreignImage = new Court("Cancha 2").AddCourtImage("courts/other/1.jpg");
+
+        // Intento "tramposo": convertir la colección a ICollection para poder llamar Add
+        var asCollection = (ICollection<CourtImage>)court.Images;
+
+        Assert.Throws<NotSupportedException>(() => asCollection.Add(foreignImage));
+        Assert.Empty(court.Images);
+    }
 }

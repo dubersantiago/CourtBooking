@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
 public sealed record CreateCourtRequest(string Name);
+public sealed record UploadCourtImageRequest(IFormFile File);
 
 [ApiController]
 [Route("api/courts")]
@@ -13,11 +14,13 @@ public class CourtsController : ControllerBase
 {
     private readonly CreateCourt _createCourt;
     private readonly GetAvailability _getAvailability;
+    private readonly UploadCourtImage _uploadCourtImage;
 
-    public CourtsController(CreateCourt createCourt, GetAvailability getAvailability)
+    public CourtsController(CreateCourt createCourt, GetAvailability getAvailability, UploadCourtImage uploadCourtImage)
     {
         _createCourt = createCourt;
         _getAvailability = getAvailability;
+        _uploadCourtImage = uploadCourtImage;
     }
 
     [Authorize(Roles = Roles.Admin)]
@@ -37,5 +40,19 @@ public class CourtsController : ControllerBase
         var availability = await _getAvailability.ExecuteAsync(query);
 
         return Ok(availability);
+    }
+
+    [Authorize(Roles = Roles.Admin)]
+    [HttpPost("{id:guid}/images")]
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    public async Task<IActionResult> UploadImage(Guid id, [FromForm] UploadCourtImageRequest request)
+    {
+        await using var stream = request.File.OpenReadStream();
+
+        var command = new UploadCourtImageCommand(id, stream, request.File.ContentType, request.File.Length);
+
+        var imageId = await _uploadCourtImage.ExecuteAsync(command);
+
+        return Created($"/api/courts/{id}/images/{imageId}", new {id = imageId});
     }
 }

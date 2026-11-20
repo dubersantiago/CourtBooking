@@ -30,7 +30,6 @@ if (string.IsNullOrWhiteSpace(r2Options.ServiceUrl) ||
     string.IsNullOrWhiteSpace(r2Options.BucketName))
     throw new InvalidOperationException("Faltan variables de r2Options");
 
-// Add services to the container.
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -64,11 +63,10 @@ builder.Services.AddScoped<GetAvailability>();
 builder.Services.AddScoped<UploadCourtImage>();
 builder.Services.AddScoped<GetImages>();
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddProblemDetails();                        // formato estándar de errores
-builder.Services.AddExceptionHandler<AppExceptionHandler>(); // registra tu manejador
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<AppExceptionHandler>();
 
 var app = builder.Build();
 
@@ -78,7 +76,6 @@ await IdentitySeeder.SeedAdminAsybc(
     app.Configuration["Admin:Email"],
     app.Configuration["Admin:Password"]);
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

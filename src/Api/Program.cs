@@ -5,6 +5,7 @@ using Application.Courts.UseCases;
 using Application.Reservations.UseCases;
 using Infrastructure;
 using Infrastructure.Identity;
+using Infrastructure.Persistence;
 using Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -69,6 +70,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<AppExceptionHandler>();
 
 var app = builder.Build();
+
+await DatabaseMigrator.MigrateAsync(app.Services);
 
 await IdentitySeeder.SeedRolesAsync(app.Services);
 await IdentitySeeder.SeedAdminAsybc(

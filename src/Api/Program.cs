@@ -62,6 +62,7 @@ builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
 builder.Services.AddScoped<GetAvailability>();
 builder.Services.AddScoped<UploadCourtImage>();
+builder.Services.AddScoped<GetImages>();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

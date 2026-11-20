@@ -14,4 +14,6 @@ public class FakeFileStorage : IFileStorage
         UploadedKeys.Add(key);
         return Task.CompletedTask;
     }
+
+    public string GetReadUrl(string key) => $"https://fake-storage/{key}";
 }

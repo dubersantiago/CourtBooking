@@ -15,12 +15,14 @@ public class CourtsController : ControllerBase
     private readonly CreateCourt _createCourt;
     private readonly GetAvailability _getAvailability;
     private readonly UploadCourtImage _uploadCourtImage;
+    private readonly GetImages _getCourtImages;
 
-    public CourtsController(CreateCourt createCourt, GetAvailability getAvailability, UploadCourtImage uploadCourtImage)
+    public CourtsController(CreateCourt createCourt, GetAvailability getAvailability, UploadCourtImage uploadCourtImage, GetImages getCourtImages)
     {
         _createCourt = createCourt;
         _getAvailability = getAvailability;
         _uploadCourtImage = uploadCourtImage;
+        _getCourtImages = getCourtImages;
     }
 
     [Authorize(Roles = Roles.Admin)]
@@ -54,5 +56,15 @@ public class CourtsController : ControllerBase
         var imageId = await _uploadCourtImage.ExecuteAsync(command);
 
         return Created($"/api/courts/{id}/images/{imageId}", new {id = imageId});
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{id:guid}/images")]
+    public async Task<IActionResult> GetCourtImages(Guid id)
+    {
+        var query = new GetCourtImagesQuery(id);
+        var images = await _getCourtImages.ExecuteAsync(query);
+
+        return Ok(images);
     }
 }

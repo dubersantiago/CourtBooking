@@ -1,0 +1,19 @@
+name: AWS check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  whoami:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write      # permiso para pedirle a GitHub el carnet OIDC
+      contents: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+
+      - name: ¿Quién soy en AWS?
+        run: aws sts get-caller-identity

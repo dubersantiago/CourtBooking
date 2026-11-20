@@ -272,6 +272,34 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Courts.Court", b =>
+                {
+                    b.OwnsMany("Domain.Courts.CourtImage", "Images", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("char(36)");
+
+                            b1.Property<Guid>("CourtId")
+                                .HasColumnType("char(36)");
+
+                            b1.Property<string>("StorageKey")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("varchar(255)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("CourtId");
+
+                            b1.ToTable("court_images", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("CourtId");
+                        });
+
+                    b.Navigation("Images");
+                });
+
             modelBuilder.Entity("Domain.Reservations.Reservation", b =>
                 {
                     b.HasOne("Domain.Courts.Court", null)

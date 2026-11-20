@@ -28,4 +28,10 @@ public class CourtRepository : ICourtRepository
             .FromSqlInterpolated($"SELECT * FROM courts WHERE Id = {id} FOR UPDATE")
             .FirstOrDefaultAsync();
     }
+
+    public async Task UpdateAsync(Court court)
+    {
+        _context.Courts.Update(court);
+        await _context.SaveChangesAsync();
+    }
 }

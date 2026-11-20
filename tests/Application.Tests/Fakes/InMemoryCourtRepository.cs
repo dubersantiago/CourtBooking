@@ -6,6 +6,13 @@ public class InMemoryCourtRepository : ICourtRepository
 {
     public List<Court> Courts { get; } = [];
     public int ForUpdateCalls { get; private set; }
+    public List<Court> Updated { get; } = [];
+
+    public Task UpdateAsync(Court court)
+    {
+        Updated.Add(court);
+        return Task.CompletedTask;
+    }
 
     public Task<Court?> GetByIdAsync(Guid id)
     {

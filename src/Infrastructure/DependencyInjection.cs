@@ -1,10 +1,12 @@
 using Application.Auth.Interfaces;
 using Application.Common.Interfaces;
+using Application.Courts.Interfaces;
 using Domain.Courts;
 using Domain.Reservations;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
+using Infrastructure.Storage;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +18,8 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         string connectionString,
-        JwtOptions jwtOptions)
+        JwtOptions jwtOptions,
+        R2Options r2Options)
     {
         services.AddDbContext<CourtBookingDbContext>(options =>
             options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
@@ -37,6 +40,9 @@ public static class DependencyInjection
         services.AddSingleton(jwtOptions);
         services.AddSingleton<ITokenGenerator, JwtTokenGenerator>();
         services.AddScoped<ITransaction, Transaction>();
+
+        services.AddSingleton(r2Options);
+        services.AddSingleton<IFileStorage, R2FileStorage>();
 
         return services;
     }

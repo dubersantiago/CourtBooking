@@ -5,6 +5,7 @@ using Application.Courts.UseCases;
 using Application.Reservations.UseCases;
 using Infrastructure;
 using Infrastructure.Identity;
+using Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -16,8 +17,18 @@ var connectionString = builder.Configuration.GetConnectionString("CourtBooking")
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Falta la seccion Jwt en la configuracion");
 
+
 if (Encoding.UTF8.GetByteCount(jwtOptions.Key) < 32)
     throw new InvalidOperationException("Jwt:key falta o es muy corta");
+
+var r2Options = builder.Configuration.GetSection(R2Options.SectionName).Get<R2Options>()
+    ?? throw new InvalidOperationException("Falta la seccion R2 en la configuracion");
+
+if (string.IsNullOrWhiteSpace(r2Options.ServiceUrl) ||
+    string.IsNullOrWhiteSpace(r2Options.AccessKeyId) ||
+    string.IsNullOrWhiteSpace(r2Options.SecretAccessKey) ||
+    string.IsNullOrWhiteSpace(r2Options.BucketName))
+    throw new InvalidOperationException("Faltan variables de r2Options");
 
 // Add services to the container.
 builder.Services
@@ -43,13 +54,14 @@ builder.Services
         };
     });
 
-builder.Services.AddInfrastructure(connectionString, jwtOptions);
+builder.Services.AddInfrastructure(connectionString, jwtOptions, r2Options);
 builder.Services.AddScoped<CreateCourt>();
 builder.Services.AddScoped<CreateReservation>();
 builder.Services.AddScoped<CancelReservation>();
 builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
 builder.Services.AddScoped<GetAvailability>();
+builder.Services.AddScoped<UploadCourtImage>();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

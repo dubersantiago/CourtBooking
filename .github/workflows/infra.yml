@@ -1,0 +1,65 @@
+name: Infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "¿Crear o destruir la infraestructura?"
+        type: choice
+        options:
+          - apply
+          - destroy
+        default: apply
+
+concurrency:
+  group: infra
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+
+      - name: Backend en R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_KEY: ${{ secrets.R2_STATE_ACCESS_KEY_ID }}
+          R2_SECRET: ${{ secrets.R2_STATE_SECRET_ACCESS_KEY }}
+        run: |
+          cat > backend.hcl <<EOF
+          endpoints  = { s3 = "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" }
+          access_key = "${R2_KEY}"
+          secret_key = "${R2_SECRET}"
+          EOF
+
+      - name: Init
+        run: terraform init -backend-config=backend.hcl -input=false
+
+      - name: Apply
+        if: inputs.action == 'apply'
+        run: terraform apply -auto-approve -input=false
+
+      - name: Destroy
+        if: inputs.action == 'destroy'
+        run: terraform destroy -auto-approve -input=false
+
+      - name: Outputs
+        if: inputs.action == 'apply'
+        run: terraform output

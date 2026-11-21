@@ -19,4 +19,4 @@ curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-com
 chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 # Carpeta donde vivirán el compose y el .env de la app
-mkdir -p /opt/clinic
+mkdir -p /opt/courtbooking

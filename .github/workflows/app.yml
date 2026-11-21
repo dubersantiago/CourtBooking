@@ -54,3 +54,95 @@ jobs:
             ${{ env.IMAGE }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    needs: image
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+
+      - name: Buscar la VM
+        id: vm
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=courtbooking-api" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          if [ "$INSTANCE_ID" = "None" ]; then
+            echo "::notice::No hay VM encendida. Lanza Infra → apply y después App a mano."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          PUBLIC_IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+          echo "ip=$PUBLIC_IP" >> "$GITHUB_OUTPUT"
+
+      - name: Guardar el .env en Parameter Store
+        if: steps.vm.outputs.found == 'true'
+        env:
+          APP_ENV_FILE: ${{ secrets.APP_ENV_FILE }}
+        run: |
+          aws ssm put-parameter --name /courtbooking/env --type SecureString \
+            --value "$APP_ENV_FILE" --overwrite > /dev/null
+
+      - name: Desplegar por SSM
+        if: steps.vm.outputs.found == 'true'
+        env:
+          INSTANCE_ID: ${{ steps.vm.outputs.id }}
+          SHA: ${{ github.sha }}
+        run: |
+          cat > deploy.sh <<EOF
+          set -e
+          cd /opt/courtbooking
+          curl -fsSL https://raw.githubusercontent.com/dubersantiago/CourtBooking/${SHA}/deploy/docker-compose.yaml -o docker-compose.yaml
+          aws ssm get-parameter --region us-east-2 --name /courtbooking/env --with-decryption --query Parameter.Value --output text > .env
+          chmod 600 .env
+          echo "IMAGE_TAG=${SHA}" >> .env
+          docker compose pull
+          docker compose up -d
+          docker image prune -f
+          docker compose ps
+          EOF
+
+          CMD_ID=$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript --comment "deploy ${SHA:0:7}" \
+            --parameters "$(jq -n --rawfile s deploy.sh '{commands: ($s | rtrimstr("\n") | split("\n"))}')" \
+            --query Command.CommandId --output text)
+          echo "Comando SSM: $CMD_ID"
+
+          for i in $(seq 1 60); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            echo "Estado: $STATUS"
+            case "$STATUS" in Success|Failed|Cancelled|TimedOut) break ;; esac
+            sleep 10
+          done
+
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+            --query '[StandardOutputContent, StandardErrorContent]' --output text
+          [ "$STATUS" = "Success" ]
+
+      - name: Probar la Api desde afuera
+        if: steps.vm.outputs.found == 'true'
+        env:
+          IP: ${{ steps.vm.outputs.ip }}
+        run: |
+          for i in $(seq 1 18); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              "http://$IP/api/courts/00000000-0000-0000-0000-000000000001/images" || true)
+            echo "Intento $i → HTTP $CODE"
+            if [ "$CODE" = "404" ]; then echo "La Api responde en http://$IP"; exit 0; fi
+            sleep 10
+          done
+          exit 1

@@ -51,4 +51,14 @@ public class R2FileStorage : IFileStorage
 
         await _client.PutObjectAsync(request);
     }
+
+    public async Task DeleteAsync(string key)
+    {
+        var request = new DeleteObjectRequest
+        {
+            BucketName = _bucketName,
+            Key = key
+        };
+        await _client.DeleteObjectAsync(request);
+    }
 }

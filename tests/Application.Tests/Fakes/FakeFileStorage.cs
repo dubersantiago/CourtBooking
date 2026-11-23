@@ -6,6 +6,7 @@ public class FakeFileStorage : IFileStorage
 {
     public List<string> UploadedKeys { get; } = [];
     public bool ShouldFail { get; set; }   // para simular que R2 falla
+    public List<string> DeletedKeys { get; } = new();
 
     public Task UploadAsync(string key, Stream content, string contentType)
     {
@@ -16,4 +17,11 @@ public class FakeFileStorage : IFileStorage
     }
 
     public string GetReadUrl(string key) => $"https://fake-storage/{key}";
+
+
+    public Task DeleteAsync(string key)
+    {
+        DeletedKeys.Add(key);
+        return Task.CompletedTask;
+    }
 }

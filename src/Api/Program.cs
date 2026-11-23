@@ -62,6 +62,7 @@ builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
 builder.Services.AddScoped<GetAvailability>();
 builder.Services.AddScoped<UploadCourtImage>();
+builder.Services.AddScoped<DeleteCourtImage>();
 builder.Services.AddScoped<GetImages>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

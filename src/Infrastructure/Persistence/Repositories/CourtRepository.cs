@@ -17,6 +17,13 @@ public class CourtRepository : ICourtRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task<IReadOnlyList<Court?>> GetAsync()
+    {
+        return await _context.Courts
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task<Court?> GetByIdAsync(Guid id)
     {
         return await _context.Courts.FirstOrDefaultAsync(c => c.Id == id);

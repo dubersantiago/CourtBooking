@@ -17,14 +17,22 @@ public class CourtsController : ControllerBase
     private readonly UploadCourtImage _uploadCourtImage;
     private readonly DeleteCourtImage _deleteCourtImage;
     private readonly GetImages _getCourtImages;
+    private readonly GetCourts _getCourts;
 
-    public CourtsController(CreateCourt createCourt, GetAvailability getAvailability, UploadCourtImage uploadCourtImage, GetImages getCourtImages, DeleteCourtImage deleteCourtImage)
+    public CourtsController(
+        CreateCourt createCourt, 
+        GetAvailability getAvailability, 
+        UploadCourtImage uploadCourtImage, 
+        GetImages getCourtImages, 
+        DeleteCourtImage deleteCourtImage,
+        GetCourts getCourts)
     {
         _createCourt = createCourt;
         _getAvailability = getAvailability;
         _uploadCourtImage = uploadCourtImage;
         _deleteCourtImage = deleteCourtImage;
         _getCourtImages = getCourtImages;
+        _getCourts = getCourts;
     }
 
     [Authorize(Roles = Roles.Admin)]
@@ -34,6 +42,15 @@ public class CourtsController : ControllerBase
         var id = await _createCourt.ExecuteAsync(new CreateCourtCommand(request.Name));
 
         return Created($"/api/courts/{id}", new { id });
+    }
+
+    [AllowAnonymous]
+    [HttpGet()]
+    public async Task<IActionResult> GetCourts()
+    {
+        var courts = await _getCourts.ExecuteAsync();
+
+        return Ok(courts);
     }
 
     [AllowAnonymous]

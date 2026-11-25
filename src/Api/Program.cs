@@ -1,5 +1,6 @@
 using System.Text;
 using Api.Errors;
+using Api.OpenApi;
 using Application.Auth.UseCases;
 using Application.Courts.UseCases;
 using Application.Reservations.UseCases;
@@ -67,7 +68,11 @@ builder.Services.AddScoped<DeleteCourtImage>();
 builder.Services.AddScoped<GetImages>();
 builder.Services.AddScoped<GetCourts>();
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    options.AddOperationTransformer<BearerSecuritySchemeTransformer>();
+});
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<AppExceptionHandler>();
@@ -85,7 +90,12 @@ await IdentitySeeder.SeedAdminAsybc(
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .AddPreferredSecuritySchemes(JwtBearerDefaults.AuthenticationScheme)
+            .EnablePersistentAuthentication();
+    });
 }
 app.UseExceptionHandler();
 

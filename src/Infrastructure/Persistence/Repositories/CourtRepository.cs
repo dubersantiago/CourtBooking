@@ -17,7 +17,7 @@ public class CourtRepository : ICourtRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task<IReadOnlyList<Court?>> GetAsync()
+    public async Task<IReadOnlyList<Court>> GetAllAsync()
     {
         return await _context.Courts
             .AsNoTracking()

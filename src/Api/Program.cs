@@ -9,6 +9,7 @@ using Infrastructure.Persistence;
 using Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +84,7 @@ await IdentitySeeder.SeedAdminAsybc(
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 app.UseExceptionHandler();
 

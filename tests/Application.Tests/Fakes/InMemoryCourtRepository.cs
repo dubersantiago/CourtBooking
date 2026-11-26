@@ -31,4 +31,9 @@ public class InMemoryCourtRepository : ICourtRepository
         Courts.Add(court);
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyList<Court>> GetAllAsync()
+    {
+        return Task.FromResult<IReadOnlyList<Court>>(Courts);
+    }
 }
